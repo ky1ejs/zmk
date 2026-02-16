@@ -12,5 +12,5 @@ outputs:
   - usb
   - ble
 siblings:
-  - tornblue_left
-  - tornblue_right
+  - tornblue_left//zmk
+  - tornblue_right//zmk

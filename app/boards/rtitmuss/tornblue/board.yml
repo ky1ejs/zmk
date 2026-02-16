@@ -1,0 +1,13 @@
+boards:
+  - name: tornblue_left
+    vendor: rtitmuss
+    socs:
+      - name: nrf52840
+        variants:
+          - name: zmk
+  - name: tornblue_right
+    vendor: rtitmuss
+    socs:
+      - name: nrf52840
+        variants:
+          - name: zmk
