@@ -14,8 +14,8 @@
 #define NAVI    1
 
 / {
-	keymap {
-		compatible = "zmk,keymap";
+    keymap {
+        compatible = "zmk,keymap";
 
         default_layer {
 // -----------------------------------------------------------------------------------------
@@ -30,7 +30,7 @@
         &kp SPACE &kp LGUI &mo 1 &kp SPACE   &rgb_ug RGB_TOG &rgb_ug RGB_EFF &kp RALT &kp RET
                         >;
 
-        	sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN>;
+            sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN>;
         };
     };
 

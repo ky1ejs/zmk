@@ -18,6 +18,7 @@ the container, and `devcontainer exec` to run commands inside it.
 **Prerequisites already installed on this machine:** Docker, devcontainer CLI.
 
 ### Actions
+
 ```bash
 # Build and start the container (from the repo root)
 devcontainer up --workspace-folder /Users/kylejs/Developer/open-source/zmk
@@ -25,6 +26,7 @@ devcontainer up --workspace-folder /Users/kylejs/Developer/open-source/zmk
 
 **Note:** After Step 1 (merging upstream), the Dockerfile will update from
 `zmk-dev-arm:3.0` to `zmk-dev-arm:4.1-branch`. The container must be rebuilt:
+
 ```bash
 devcontainer up --workspace-folder /Users/kylejs/Developer/open-source/zmk --remove-existing-container
 ```
@@ -35,6 +37,7 @@ devcontainer up --workspace-folder /Users/kylejs/Developer/open-source/zmk --rem
 devcontainer exec --workspace-folder /Users/kylejs/Developer/open-source/zmk \
   bash -c "west --version && cmake --version | head -1 && ninja --version && dtc --version && arm-zephyr-eabi-gcc --version | head -1 && python3 -c \"import elftools; import yaml; print('OK')\""
 ```
+
 All commands should succeed (no "not found" errors).
 
 ---
@@ -47,11 +50,13 @@ all ZMK improvements. The tornblue files will have merge conflicts since the
 
 **Important:** After this merge, rebuild the Dev Container since the Dockerfile
 will change from `zmk-dev-arm:3.0` to `zmk-dev-arm:4.1-branch`:
+
 ```bash
 devcontainer up --workspace-folder /Users/kylejs/Developer/open-source/zmk --remove-existing-container
 ```
 
 ### Actions
+
 1. Ensure the upstream remote exists: `git remote add upstream https://github.com/zmkfirmware/zmk.git` (if not already)
 2. `git fetch upstream`
 3. `git merge upstream/main` — resolve conflicts, keeping the tornblue board files aside
@@ -61,6 +66,7 @@ devcontainer up --workspace-folder /Users/kylejs/Developer/open-source/zmk --rem
 5. Rebuild the Dev Container so it picks up the new `zmk-dev-arm:4.1-branch` image
 
 ### Verification
+
 - `git log --oneline -1 upstream/main` commit hash appears in `git log --oneline -5 HEAD`
   (i.e., the merge commit includes upstream/main)
 - `cat app/west.yml` shows `revision: v4.1.0+zmk-fixes`
@@ -76,11 +82,13 @@ must be re-initialized to pull the correct Zephyr v4.1 and module dependencies.
 
 All `west` / build commands run inside the Dev Container via `devcontainer exec`.
 For brevity, subsequent steps use `dcexec` as shorthand for:
+
 ```bash
 devcontainer exec --workspace-folder /Users/kylejs/Developer/open-source/zmk
 ```
 
 ### Actions
+
 ```bash
 dcexec west init -l app
 dcexec west update
@@ -88,6 +96,7 @@ dcexec west zephyr-export
 ```
 
 ### Verification
+
 - `.west/` directory exists in the workspace
 - `dcexec cat zephyr/VERSION` shows a Zephyr 4.1.x version
 - `dcexec west list` completes without errors and lists `zephyr`, `hal_nordic`, `cmsis`, etc.
@@ -100,11 +109,13 @@ The HWMv2 board format requires `app/boards/<vendor>/<board>/` instead of
 `app/boards/arm/<board>/`.
 
 ### Actions
+
 1. `mkdir -p app/boards/rtitmuss/tornblue`
 2. Move all tornblue files from `app/boards/arm/tornblue/` to `app/boards/rtitmuss/tornblue/`
 3. Delete `app/boards/arm/tornblue/`
 
 ### Verification
+
 - `ls app/boards/rtitmuss/tornblue/` shows all board files
 - `ls app/boards/arm/tornblue/` returns "No such file or directory"
 
@@ -115,7 +126,9 @@ The HWMv2 board format requires `app/boards/<vendor>/<board>/` instead of
 This is a **new required file** for Zephyr v4.1 boards.
 
 ### Actions
+
 Create `app/boards/rtitmuss/tornblue/board.yml`:
+
 ```yaml
 boards:
   - name: tornblue_left
@@ -133,6 +146,7 @@ boards:
 ```
 
 ### Verification
+
 - File exists at `app/boards/rtitmuss/tornblue/board.yml`
 - Content uses `boards:` (plural) with two entries for left and right halves
 - Each entry has `socs: [{name: nrf52840, variants: [{name: zmk}]}]`
@@ -144,6 +158,7 @@ boards:
 The new naming convention is `<board>_<soc>_<variant>.dts`.
 
 ### Actions
+
 1. `tornblue_left.dts` → `tornblue_left_nrf52840_zmk.dts`
 2. `tornblue_right.dts` → `tornblue_right_nrf52840_zmk.dts`
 3. `tornblue_left.keymap` → `tornblue_left_nrf52840_zmk.keymap`
@@ -152,6 +167,7 @@ The new naming convention is `<board>_<soc>_<variant>.dts`.
 5. The shared `tornblue.dtsi` keeps its name (it's included, not directly compiled)
 
 ### Verification
+
 - `ls app/boards/rtitmuss/tornblue/tornblue_left_nrf52840_zmk.dts` exists
 - `ls app/boards/rtitmuss/tornblue/tornblue_right_nrf52840_zmk.dts` exists
 - No files named `tornblue_left.dts` or `tornblue_right.dts` remain
@@ -161,10 +177,12 @@ The new naming convention is `<board>_<soc>_<variant>.dts`.
 ## Step 6: Rename defconfig files
 
 ### Actions
+
 1. `tornblue_left_defconfig` → `tornblue_left_nrf52840_zmk_defconfig`
 2. `tornblue_right_defconfig` → `tornblue_right_nrf52840_zmk_defconfig`
 
 ### Verification
+
 - `ls app/boards/rtitmuss/tornblue/tornblue_left_nrf52840_zmk_defconfig` exists
 - `ls app/boards/rtitmuss/tornblue/tornblue_right_nrf52840_zmk_defconfig` exists
 
@@ -180,15 +198,18 @@ Add pinctrl enablement.
 In both `tornblue_left_nrf52840_zmk_defconfig` and `tornblue_right_nrf52840_zmk_defconfig`:
 
 **Remove these lines:**
+
 - `CONFIG_SOC_SERIES_NRF52X=y`
 - `CONFIG_SOC_NRF52840_QIAA=y`
 - `CONFIG_BOARD_TORNBLUE_LEFT=y` / `CONFIG_BOARD_TORNBLUE_RIGHT=y`
 - `CONFIG_WS2812_STRIP=y`
 
 **Add:**
+
 - `CONFIG_PINCTRL=y`
 
 ### Verification
+
 - Neither defconfig file contains `CONFIG_SOC_SERIES_`, `CONFIG_SOC_NRF52840_`, `CONFIG_BOARD_`,
   or `CONFIG_WS2812_STRIP`
 - Both defconfig files contain `CONFIG_PINCTRL=y`
@@ -205,23 +226,27 @@ Replace the single `Kconfig.board` with per-half Kconfig files, and update
 **Delete** `Kconfig.board`.
 
 **Create** `Kconfig.tornblue_left`:
+
 ```kconfig
 config BOARD_TORNBLUE_LEFT
     select SOC_NRF52840_QIAA
 ```
 
 **Create** `Kconfig.tornblue_right`:
+
 ```kconfig
 config BOARD_TORNBLUE_RIGHT
     select SOC_NRF52840_QIAA
 ```
 
 **Update** `Kconfig.defconfig`:
+
 - Change `ZMK_SPLIT_BLE_ROLE_CENTRAL` → `ZMK_SPLIT_ROLE_CENTRAL`
 - Remove any `USB_NRFX`, `USB_DEVICE_STACK`, `BT_CTLR`, `ZMK_BLE`, `ZMK_USB` defaults
   if they are now handled elsewhere (check adv360pro for reference)
 
 ### Verification
+
 - `Kconfig.board` does not exist
 - `Kconfig.tornblue_left` exists and contains `select SOC_NRF52840_QIAA`
 - `Kconfig.tornblue_right` exists and contains `select SOC_NRF52840_QIAA`
@@ -238,6 +263,7 @@ pinctrl subsystem.
 ### Actions
 
 **Create** `app/boards/rtitmuss/tornblue/tornblue_left-pinctrl.dtsi`:
+
 ```dts
 &pinctrl {
     spi0_default: spi0_default {
@@ -255,6 +281,7 @@ pinctrl subsystem.
 ```
 
 **Create** `app/boards/rtitmuss/tornblue/tornblue_right-pinctrl.dtsi`:
+
 ```dts
 &pinctrl {
     spi0_default: spi0_default {
@@ -272,6 +299,7 @@ pinctrl subsystem.
 ```
 
 **Update** both DTS files (`tornblue_left_nrf52840_zmk.dts` and `tornblue_right_nrf52840_zmk.dts`):
+
 1. Add `#include "tornblue_left-pinctrl.dtsi"` (or right) near the top
 2. Replace the `&spi0` block — remove `mosi-pin`, `sck-pin`, `miso-pin` and add:
    ```dts
@@ -281,6 +309,7 @@ pinctrl subsystem.
    ```
 
 ### Verification
+
 - Both pinctrl dtsi files exist
 - `grep -r "mosi-pin\|sck-pin\|miso-pin" app/boards/rtitmuss/tornblue/` returns no results
 - Both DTS files contain `pinctrl-0` and `pinctrl-names`
@@ -295,6 +324,7 @@ was removed; it must be declared in DeviceTree now.
 ### Actions
 
 **Add to `tornblue.dtsi`** (so it applies to both halves):
+
 ```dts
 &uicr {
     nfct-pins-as-gpios;
@@ -306,6 +336,7 @@ was removed; it must be declared in DeviceTree now.
 ```
 
 ### Verification
+
 - `grep "nfct-pins-as-gpios" app/boards/rtitmuss/tornblue/tornblue.dtsi` returns a match
 - `grep "regulator-initial-mode" app/boards/rtitmuss/tornblue/tornblue.dtsi` returns a match
 
@@ -314,6 +345,7 @@ was removed; it must be declared in DeviceTree now.
 ## Step 11: Update `tornblue.dtsi` for Zephyr v4.1
 
 ### Actions
+
 1. Add `#include <common/nordic/nrf52840_uf2_boot_mode.dtsi>` to support the new
    bootloader retention mechanism
 2. Remove deprecated `label` properties from device nodes (`kscan0`, `vbatt`,
@@ -321,6 +353,7 @@ was removed; it must be declared in DeviceTree now.
 3. Add `#include <dt-bindings/regulator/nrf5x.h>` for the `NRF5X_REG_MODE_DCDC` constant
 
 ### Verification
+
 - `grep "nrf52840_uf2_boot_mode" app/boards/rtitmuss/tornblue/tornblue.dtsi` returns a match
 - `grep 'label = "KSCAN"' app/boards/rtitmuss/tornblue/tornblue.dtsi` returns no results
 - `grep "nrf5x.h" app/boards/rtitmuss/tornblue/tornblue.dtsi` returns a match
@@ -332,10 +365,12 @@ was removed; it must be declared in DeviceTree now.
 ### Actions
 
 Remove `label = "..."` lines from:
+
 - `tornblue_left_nrf52840_zmk.dts`: encoder label, LED labels, ext-power label, WS2812 label
 - `tornblue_right_nrf52840_zmk.dts`: LED labels, ext-power label, WS2812 label
 
 ### Verification
+
 - `grep -c 'label =' app/boards/rtitmuss/tornblue/tornblue_left_nrf52840_zmk.dts` returns 0
 - `grep -c 'label =' app/boards/rtitmuss/tornblue/tornblue_right_nrf52840_zmk.dts` returns 0
 
@@ -346,6 +381,7 @@ Remove `label = "..."` lines from:
 ### Actions
 
 1. **Update includes:**
+
    ```c
    #include <zephyr/init.h>
    #include <zephyr/device.h>
@@ -356,6 +392,7 @@ Remove `label = "..."` lines from:
 
 2. **Replace GPIO pattern** — change from `device_get_binding` + `DT_GPIO_LABEL` to
    `GPIO_DT_SPEC_GET`:
+
    ```c
    static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(LED1_NODE, gpios);
    static const struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(LED2_NODE, gpios);
@@ -374,6 +411,7 @@ Remove `label = "..."` lines from:
    `CONFIG_ZMK_SPLIT_ROLE_CENTRAL`.
 
 ### Verification
+
 - `grep "device_get_binding\|DT_GPIO_LABEL\|DT_GPIO_PIN\|DT_GPIO_FLAGS" app/boards/rtitmuss/tornblue/led_driver.c`
   returns no results
 - `grep "GPIO_DT_SPEC_GET" app/boards/rtitmuss/tornblue/led_driver.c` returns 3 matches
@@ -393,6 +431,7 @@ Remove `label = "..."` lines from:
 ### Actions
 
 Update the `siblings` field to include the SoC/variant qualifier:
+
 ```yaml
 siblings:
   - tornblue_left//zmk
@@ -400,6 +439,7 @@ siblings:
 ```
 
 ### Verification
+
 - `grep "//zmk" app/boards/rtitmuss/tornblue/tornblue.zmk.yml` returns 2 matches
 
 ---
@@ -411,11 +451,13 @@ All modern ZMK boards include this file.
 ### Actions
 
 Create `app/boards/rtitmuss/tornblue/pre_dt_board.cmake`:
+
 ```cmake
 list(APPEND EXTRA_DTC_FLAGS "-Wno-simple_bus_reg")
 ```
 
 ### Verification
+
 - File exists and contains `-Wno-simple_bus_reg`
 
 ---
@@ -425,11 +467,13 @@ list(APPEND EXTRA_DTC_FLAGS "-Wno-simple_bus_reg")
 This is the primary validation that all changes are correct.
 
 ### Actions
+
 ```bash
 dcexec west build -p -d app/build/left -b tornblue_left//zmk app
 ```
 
 ### Verification
+
 - Build completes with exit code 0
 - `ls app/build/left/zephyr/zmk.uf2` exists (UF2 output)
 - No errors in build output (warnings about deprecated features are acceptable
@@ -440,11 +484,13 @@ dcexec west build -p -d app/build/left -b tornblue_left//zmk app
 ## Step 17: Build firmware (right half)
 
 ### Actions
+
 ```bash
 dcexec west build -p -d app/build/right -b tornblue_right//zmk app
 ```
 
 ### Verification
+
 - Build completes with exit code 0
 - `ls app/build/right/zephyr/zmk.uf2` exists
 - No errors in build output
@@ -454,6 +500,7 @@ dcexec west build -p -d app/build/right -b tornblue_right//zmk app
 ## Step 18: Clean up and commit
 
 ### Actions
+
 1. Remove stale files:
    - `torn#1.log`, `torn#2.log`, `torn#2.2` (debug log artifacts)
    - `tornblue.yaml` (old MCU metadata file, replaced by `board.yml`)
@@ -462,6 +509,7 @@ dcexec west build -p -d app/build/right -b tornblue_right//zmk app
 3. Commit all changes
 
 ### Verification
+
 - `git status` shows a clean working tree after commit
 - No files remain under `app/boards/arm/tornblue/`
 - `git diff upstream/main -- app/boards/rtitmuss/tornblue/` shows only tornblue-specific
@@ -495,6 +543,7 @@ README.md                              (existing, optionally updated)
 ```
 
 **Deleted files:**
+
 - `Kconfig.board`
 - `tornblue.yaml`
 - `tornblue_left.dts`, `tornblue_right.dts`

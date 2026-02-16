@@ -46,6 +46,7 @@ J=8 ./run-test.sh all
 ```
 
 Each test case directory contains:
+
 - `native_posix_64.keymap` — test keymap with mock key events
 - `events.patterns` — sed patterns to filter relevant log output
 - `keycode_events.snapshot` — expected output (diff'd against actual)
@@ -127,6 +128,7 @@ The central half runs the full keymap/behavior pipeline and connects to the host
 ## CI
 
 GitHub Actions workflows run on changes to relevant paths:
+
 - **build.yml** — Builds board/shield combos. On core changes, uses matrix from `core-coverage.yml`. On board changes, builds only affected combinations.
 - **test.yml** — Runs `west test` on src/test changes
 - **clang-format-lint.yml** — Checks C formatting
