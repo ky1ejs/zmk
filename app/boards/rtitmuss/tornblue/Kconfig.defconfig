@@ -36,4 +36,13 @@ endif # USB
 config ZMK_BATTERY_VOLTAGE_DIVIDER
     default y
 
+config TORNBLUE_LED_BT_PROFILE
+    bool "Use LEDs to indicate active Bluetooth profile"
+    default n
+    help
+      When enabled, the 3 onboard GPIO LEDs show the active
+      Bluetooth profile (one LED per profile 0-2, all LEDs on
+      for profile 3). When disabled (default), LEDs indicate
+      the active keyboard layer (NAV, NUM, SYM).
+
 endif
