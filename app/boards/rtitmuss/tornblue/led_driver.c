@@ -12,6 +12,8 @@
  * Only actively driven on the central (left) half. The peripheral
  * (right) compiles this file but registers no event subscription,
  * so its LEDs remain off.
+ *
+ * LEDs are turned off on idle/sleep and restored on wake.
  */
 
 #include <zephyr/init.h>
@@ -23,6 +25,8 @@
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include <zmk/event_manager.h>
+#include <zmk/activity.h>
+#include <zmk/events/activity_state_changed.h>
 
 #ifdef CONFIG_TORNBLUE_LED_BT_PROFILE
 #include <zmk/ble.h>
@@ -40,6 +44,12 @@ static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(LED1_NODE, gpios);
 static const struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(LED2_NODE, gpios);
 static const struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(LED3_NODE, gpios);
 
+static void leds_off(void) {
+    gpio_pin_set_dt(&led1, 0);
+    gpio_pin_set_dt(&led2, 0);
+    gpio_pin_set_dt(&led3, 0);
+}
+
 #ifdef CONFIG_TORNBLUE_LED_BT_PROFILE
 
 static void update_leds_for_profile(uint8_t profile_index) {
@@ -48,6 +58,8 @@ static void update_leds_for_profile(uint8_t profile_index) {
     gpio_pin_set_dt(&led2, profile_index == 1 || profile_index >= 3);
     gpio_pin_set_dt(&led3, profile_index == 2 || profile_index >= 3);
 }
+
+static void leds_restore(void) { update_leds_for_profile(zmk_ble_active_profile_index()); }
 
 static int led_event_handler(const zmk_event_t *eh) {
     const struct zmk_ble_active_profile_changed *ev = as_zmk_ble_active_profile_changed(eh);
@@ -59,15 +71,35 @@ static int led_event_handler(const zmk_event_t *eh) {
 
 #else /* Layer indicators */
 
-static int led_event_handler(const zmk_event_t *eh) {
+static void leds_restore(void) {
     const uint8_t layer = zmk_keymap_highest_layer_active();
-    gpio_pin_set_dt(&led1, layer == 1); /* NAV */
-    gpio_pin_set_dt(&led2, layer == 2); /* NUM */
-    gpio_pin_set_dt(&led3, layer == 3); /* SYM */
+    gpio_pin_set_dt(&led1, layer == 1);
+    gpio_pin_set_dt(&led2, layer == 2);
+    gpio_pin_set_dt(&led3, layer == 3);
+}
+
+static int led_event_handler(const zmk_event_t *eh) {
+    leds_restore();
     return 0;
 }
 
 #endif /* CONFIG_TORNBLUE_LED_BT_PROFILE */
+
+static int led_activity_handler(const zmk_event_t *eh) {
+    const struct zmk_activity_state_changed *ev = as_zmk_activity_state_changed(eh);
+    if (ev) {
+        switch (ev->state) {
+        case ZMK_ACTIVITY_ACTIVE:
+            leds_restore();
+            break;
+        case ZMK_ACTIVITY_IDLE:
+        case ZMK_ACTIVITY_SLEEP:
+            leds_off();
+            break;
+        }
+    }
+    return 0;
+}
 
 static int led_init(void) {
     gpio_pin_configure_dt(&led1, GPIO_OUTPUT_INACTIVE);
@@ -83,6 +115,7 @@ static int led_init(void) {
 }
 
 ZMK_LISTENER(led, led_event_handler);
+ZMK_LISTENER(led_activity, led_activity_handler);
 
 #ifdef CONFIG_ZMK_SPLIT_ROLE_CENTRAL
 #ifdef CONFIG_TORNBLUE_LED_BT_PROFILE
@@ -90,6 +123,7 @@ ZMK_SUBSCRIPTION(led, zmk_ble_active_profile_changed);
 #else
 ZMK_SUBSCRIPTION(led, zmk_layer_state_changed);
 #endif
+ZMK_SUBSCRIPTION(led_activity, zmk_activity_state_changed);
 #endif
 
 SYS_INIT(led_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
